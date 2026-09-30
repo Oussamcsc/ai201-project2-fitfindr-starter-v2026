@@ -118,18 +118,30 @@ $ python app.py ask '...'
 **The three tools, tested one at a time**
 
 ```
-$ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+$ .venv/bin/python -c "from tools import search_listings; print([(x['id'], x['title'], x['price'], x['size']) for x in search_listings('graphic tee', max_price=30)])"
+[('lst_006', 'Graphic Tee — 2003 Tour Bootleg Style', 24.0, 'L'), ('lst_002', 'Y2K Baby Tee — Butterfly Print', 18.0, 'S/M'), ('lst_033', 'Vintage Band Tee — Faded Grey', 19.0, 'L'), ('lst_015', 'Vintage Graphic Hoodie — Faded Black', 26.0, 'L'), ('lst_017', 'Mesh Long-Sleeve Top — Black', 15.0, 'S/M'), ('lst_011', 'Low-Rise Cargo Pants — Khaki', 27.0, 'W29')]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ .venv/bin/python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[5], get_example_wardrobe()))"
+**Outfit 1: 90s Streetwear**
+*   **Bottoms:** Baggy dark-wash straight-leg jeans
+*   **Outerwear:** Vintage black denim jacket (worn open)
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+*   *Why it works:* Double black denim grounds the graphic tee, while the chunky sneakers and baggy fit lean straight into the 2003 bootleg aesthetic.
 
+**Outfit 2: High-Low Grunge**
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Layering (Inner):** White ribbed tank top (let the hem peek out under the tee)
+*   **Shoes:** Black combat boots
+*   **Accessories:** Brown leather belt, black crossbody bag
+*   *Why it works:* Tucking the tee into khaki trousers adds structure, and the combat boots pull the look toward effortless grunge.
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ .venv/bin/python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('Pair it with baggy dark-wash jeans and chunky white sneakers.', load_listings()[5]))"
+Scored this 2003 tour graphic tee and I'm obsessed with the faded wash. It’s giving major grunge energy and looks so good with baggy denim. Grabbed it on Depop for just $24.
 ```
 
 ---
