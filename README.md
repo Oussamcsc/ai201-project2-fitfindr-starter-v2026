@@ -39,9 +39,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
-
-
+FitFindr helps a user search thrift listings from a plain-language request like "vintage graphic tee under $30." It finds matching listings, picks one item, suggests how to wear it with the user's saved wardrobe, and writes a short fit-card caption. If nothing matches, it stops before outfit generation and tells the user what they could change, such as price, size, or description.
 
 ---
 
@@ -59,24 +57,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches the local listings data for thrift items matching the user's description, optional size, and optional maximum price.
+- **Inputs:** `description` (`str`), `size` (`str | None`), `max_price` (`float | None`). Size matching should be case-insensitive and token-aware, so `M` can match `S/M` or `M/L` but `S` does not match `US 9`.
+- **Returns:** A list of listing dictionaries, best match first, with each dict containing `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, and `platform`.
+- **When it has nothing:** Returns an empty list `[]`.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Suggests one or two ways to style the selected thrift item with the user's wardrobe.
+- **Inputs:** `new_item` (`dict` listing with the fields returned by `search_listings`), `wardrobe` (`dict` with an `items` list of wardrobe item dicts).
+- **Returns:** A non-empty string with outfit ideas that name the selected item and, when wardrobe items exist, specific pieces from the user's wardrobe.
+- **When it has nothing:** If `wardrobe["items"]` is empty, returns a non-empty string with general styling advice for the item instead of failing.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Writes a short social caption for the selected item and outfit idea.
+- **Inputs:** `outfit` (`str`), `new_item` (`dict` listing with title, price, platform, and style details).
+- **Returns:** A two-to-four sentence string that reads like a post caption and mentions the item, price, platform, and outfit vibe.
+- **When it has nothing:** If `outfit` is empty or whitespace, returns a short message explaining that a fit card cannot be created without an outfit suggestion.
 
 ---
 
@@ -93,13 +91,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a useful message in `session["error"]` naming what the user could change and stop without calling `suggest_outfit` or `create_fit_card`. Otherwise, take the first listing, store it in `session["selected_item"]`, pass it to `suggest_outfit`, then pass the resulting outfit suggestion and same selected item to `create_fit_card`.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Regex/string parsing: extract a price from phrases like `under $30`, extract a size from phrases like `size M` or `in size M`, and use the remaining words as the description.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** The original query goes into `session["query"]`; parsed `description`, `size`, and `max_price` go into `session["parsed"]`; search results go into `session["search_results"]`; the first result goes into `session["selected_item"]`; the outfit text goes into `session["outfit_suggestion"]`; the final caption goes into `session["fit_card"]`; early-stop messages go into `session["error"]`.
 
 ---
 

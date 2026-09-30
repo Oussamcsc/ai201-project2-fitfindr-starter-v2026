@@ -25,9 +25,7 @@ Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
 **Why this target:**
-<!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
-     "my search is a plain keyword match and some phrasings will miss" is a
-     real answer. -->
+I picked 4 of 5 because the search will use simple parsing and keyword overlap, so one reasonable phrasing may miss even when the data has a related item. A matching query should usually complete, but I do not expect plain keyword search to understand every synonym.
 
 ---
 
@@ -37,66 +35,34 @@ Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
 **Why this target:**
-<!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
-     about this path? -->
+I picked 5 of 5 because this path is deterministic after search: an empty list should always trigger the same branch. Unlike model-generated captions, stopping before the second tool should not vary from run to run.
 
 ---
 
-## 3. Something about state
+## 3. The selected listing is preserved in session state
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know that the item your search found is the same item the
-     next tool received? Name something countable or observable.
-
-     This is the criterion people find hardest, because state failure doesn't
-     look like state failure — it looks like a tool problem. Something that
-     compares session["selected_item"] against what actually reached
-     suggest_outfit is the shape you're after. -->
-
-
+Given a matching query, the listing stored in `session["selected_item"]` has the same `id` and `title` as the first listing in `session["search_results"]`, and the outfit suggestion refers to that same selected item — in at least 4 of 5 tries.
 
 **Why this target:**
-
-
+I picked 4 of 5 because the session copy should always preserve the exact listing, but the model-written outfit text may sometimes describe the item without repeating its exact title. Checking both the stored `id`/`title` and the outfit wording gives evidence that state flowed through the loop without requiring perfect model wording every time.
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card includes the details needed to post it
 
-<!-- YOU WRITE THIS ONE.
-
-     The fit card calls a model, so the same input can produce different words
-     each time. That's not a bug — it's the nature of the tool. So what would
-     make it acceptable?
-
-     Think about what you'd actually be unhappy to see. A caption that never
-     mentions the price? Two different items producing the same opening
-     sentence? A card longer than a caption anyone would post? Any of those can
-     be turned into a number. -->
-
-
+Given a matching query, the returned fit card is two to four sentences long and mentions the selected item's price and platform — in at least 4 of 5 tries.
 
 **Why this target:**
-
-
+I picked 4 of 5 because the fit card is model-generated, so wording can vary, but price and platform are concrete details from the listing that should usually survive the prompt. I did not choose 5 of 5 because a caption may occasionally be good but omit one required detail, which is exactly the kind of variation I want to measure next unit.
 
 ---
 
-## 5. Your choice
+## 5. Search respects the user's price ceiling
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. Speed, the empty
-     wardrobe path, what happens when the model can't be reached, whether the
-     search respects a price ceiling — anything, as long as it names a number
-     or an observable outcome. -->
-
-
+Given a query with a maximum price, every listing in `session["search_results"]` has `price <= session["parsed"]["max_price"]` — 5 of 5 tries.
 
 **Why this target:**
-
-
+I picked 5 of 5 because price filtering is deterministic and does not depend on model output. If the user asks for an item under a budget, returning a listing above that budget is a clear tool failure, not acceptable variation.
 
 ---
 
