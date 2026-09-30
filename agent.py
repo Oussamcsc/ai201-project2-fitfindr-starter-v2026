@@ -13,6 +13,8 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
@@ -48,6 +50,26 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 
 # ── planning loop ─────────────────────────────────────────────────────────────
+
+def _parse_query(query: str) -> dict:
+    """Pull description, size, and max_price out of a plain-language query."""
+    parsed = {"description": query.strip(), "size": None, "max_price": None}
+    description = query.strip()
+
+    price_match = re.search(r"(?:under|below|less than|up to|max(?:imum)?)\s*\$?\s*(\d+(?:\.\d+)?)", description, re.I)
+    if price_match:
+        parsed["max_price"] = float(price_match.group(1))
+        description = (description[: price_match.start()] + description[price_match.end() :]).strip()
+
+    size_match = re.search(r"(?:in\s+)?size\s+([a-z0-9./-]+)", description, re.I)
+    if size_match:
+        parsed["size"] = size_match.group(1).upper()
+        description = (description[: size_match.start()] + description[size_match.end() :]).strip()
+
+    description = re.sub(r"\s+", " ", description).strip(" ,.-")
+    parsed["description"] = description or query.strip()
+    return parsed
+
 
 def run_agent(query: str, wardrobe: dict) -> dict:
     """
@@ -106,10 +128,49 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    iterations = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
-    return session
+    try:
+        iterations += 1
+        trace.check_iterations(iterations)
+        session["parsed"] = _parse_query(query)
+
+        iterations += 1
+        trace.check_iterations(iterations)
+        results = search_listings(
+            session["parsed"]["description"],
+            session["parsed"]["size"],
+            session["parsed"]["max_price"],
+        )
+        session["search_results"] = results
+
+        if not results:
+            session["error"] = (
+                "I couldn't find matching listings. Try changing the item description, "
+                "choosing a different size, or raising the max price."
+            )
+            return session
+
+        session["selected_item"] = session["search_results"][0]
+
+        iterations += 1
+        trace.check_iterations(iterations)
+        session["outfit_suggestion"] = suggest_outfit(
+            session["selected_item"],
+            session["wardrobe"],
+        )
+
+        iterations += 1
+        trace.check_iterations(iterations)
+        session["fit_card"] = create_fit_card(
+            session["outfit_suggestion"],
+            session["selected_item"],
+        )
+        return session
+
+    except ModelUnavailable as exc:
+        session["error"] = str(exc)
+        return session
 
 
 # ── running it directly ───────────────────────────────────────────────────────
