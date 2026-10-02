@@ -111,8 +111,26 @@ FitFindr helps a user search thrift listings from a plain-language request like 
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ .venv/bin/python app.py ask 'vintage graphic tee under $30'
 
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   **Outfit 1: Y2K Streetwear**
+*   **Bottoms:** Baggy straight-leg jeans
+*   **Outerwear:** Black cropped zip hoodie (worn open)
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+*   *Why it works:* Balances the fitted baby tee with baggy denim, nailing the Y2K streetwear proportion.
+
+**Outfit 2: High-Low Contrast**
+*   **Bottoms:** Wide-leg khaki trousers secured with the brown leather belt
+*   **Outerwear:** Vintage black denim jacket
+*   **Shoes:** Black combat boots
+*   *Why it works:* Combines the girly, pastel butterfly print with edgy boots and structured earth-tone trousers for an easy contrast.
+
+  Fit card: Scored this butterfly print Y2K baby tee for just $18 on Depop and I’m obsessed. Already styling it with baggy denim and chunky sneakers for the ultimate off-duty look. Grab it before I change my mind!
+
+0 model calls this session, 2 served from cache
 ```
 
 **The three tools, tested one at a time**
@@ -157,15 +175,15 @@ Scored this 2003 tour graphic tee and I'm obsessed with the faded wash. It’s g
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked the coding agent to inspect the starter repo and create a phase-by-phase plan without writing code.
+- *What came back:* It identified that `tools.py`, `agent.py`, `README.md`, and `criteria.md` were still stubs, confirmed the venv command needed to be `.venv/bin/python`, and proposed separate phases for specs, tools, loop wiring, and writeup.
+- *What I changed:* I approved the phases one at a time, starting with the documentation/spec phase before any implementation so the criteria existed before the results.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I approved implementation of the three tools after the specs were written.
+- *What came back:* The agent implemented keyword search, token-aware size matching, model prompts for outfit suggestions, and a fit-card prompt.
+- *What I changed:* After the first search test ranked some loose matches above the direct graphic tee result, the search scoring was adjusted to give extra weight to title and style-tag matches.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
