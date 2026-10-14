@@ -205,18 +205,89 @@ Scored this 2003 tour graphic tee and I'm obsessed with the faded wash. It’s g
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before tool 2 | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected listing is preserved in session | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card includes posting details | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search respects the price ceiling | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+The complete unedited output is in
+`results/run_2026-10-14_1518_before.md`, produced by
+`run_eval.py::main` from sessions returned by `agent.py::run_agent`. Caching
+was off, and the run made 40 model calls. These are real excerpts from one try
+for each criterion:
 
+**Criterion 1 — Try 1**
+
+```text
+stopped early: no
+selected_item: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+search_results: 10
+
+Outfit suggestion:
+**Y2K Streetwear Look**
+* Bottoms: Baggy dark-wash straight-leg jeans
+* Shoes: Chunky white sneakers
+* Outerwear: Black cropped zip hoodie (worn open)
+* Accessories: Black crossbody bag
+
+Fit card:
+Finally secured the ultimate butterfly baby tee for just $18 on Depop. Paired
+it with baggy denim and a zip hoodie for the exact proportion I’ve been hunting
+for. Grab it before I change my mind and keep it.
+
+Trace tools: search_listings (via MCP) -> suggest_outfit -> create_fit_card
 ```
 
+**Criterion 2 — Try 1**
+
+```text
+stopped early: yes — I couldn't find matching listings. Try changing the item
+description, choosing a different size, or raising the max price.
+selected_item: (none)
+search_results: 0
+trace: search_listings (via MCP) returned [] (empty) -> branch: empty, stopping
 ```
+
+**Criterion 3 — Try 1**
+
+```text
+first search result: lst_007 | Denim Jacket — Light Wash, Cropped
+selected item: lst_007 | Denim Jacket — Light Wash, Cropped
+outfit suggestion:
+**Look 1: Double Denim Streetwear**
+* Base: White ribbed tank top + Baggy dark-wash straight-leg jeans with the
+  brown leather belt.
+* Outerwear: Cropped light-wash denim jacket (creates a trendy high-contrast
+  Canadian tuxedo).
+* Shoes & Accessories: Chunky white sneakers + Black crossbody bag.
+```
+
+The report's five traces show `select_listing` taking the first search result.
+The exact `id`/`title` output above came from a supporting call to
+`agent.py::run_agent` after the baseline report and confirms that the two
+session records match as well as the displayed titles.
+
+**Criterion 4 — Try 1**
+
+```text
+Found this dreamy butterfly baby tee and I'm obsessed. Snagged it on Depop for
+just $18. Throwing it on with baggy denim and sneakers for the ultimate 2000s
+street look.
+```
+
+This is three sentences and includes both `$18` and `Depop`.
+
+**Criterion 5 — Try 1**
+
+```text
+parsed: {'description': 'graphic tee', 'size': None, 'max_price': 20.0}
+result prices: [18.0, 19.0, 15.0]
+```
+
+The parsed value came from `agent.py::_parse_query`; the prices came from
+`mcp_client.call_tool("search_listings", parsed)`. The MCP search is
+deterministic, and all five traces returned the same three listings.
 
 ---
 
@@ -240,14 +311,33 @@ that produced it:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Matching query completes all three tools | 4 of 5 | **MET (5/5)** | Every trace contains the MCP search, outfit tool, and fit-card tool in order, and every run returned a non-empty fit card. |
+| 2 | Impossible query stops before tool 2 | 5 of 5 | **MET (5/5)** | Every MCP search returned `[]`; each trace stopped after the search and each error named description, size, or price as something to change. |
+| 3 | Selected listing is preserved in session | 4 of 5 | **MET (5/5)** | In every run the first result and selected item were the light-wash cropped denim jacket, and every outfit explicitly styled that jacket. |
+| 4 | Fit card includes posting details | 4 of 5 | **MET (5/5)** | All five cards had three sentences and included the selected item's `$18` price and `Depop` platform. |
+| 5 | Search respects the price ceiling | 5 of 5 | **MET (5/5)** | Every run parsed a `$20` maximum and returned prices `[18.0, 19.0, 15.0]`; none exceeded the limit. |
 
 **Diagnoses**
 
+No criterion missed, so there is no miss to attribute to a tool, branch,
+session, or model output. The two deterministic behaviors—the empty branch
+and price filter—were stable at 5/5. The three model-involving criteria also
+met their 4/5 targets, although those targets only exercised one query each,
+so the result demonstrates consistency more than broad item coverage.
+
+One quality problem appeared outside the five criteria: criterion 3's third
+fit card invented `Shop my Poshmark closet: [Insert Closet Link]`. The
+mechanism is in the `create_fit_card` model prompt: it asks for a social post
+but does not forbid invented links, calls to action, or facts absent from the
+listing. This did not make criterion 3 fail because that criterion measures
+session identity and outfit continuity, not unsupported fit-card content.
+It is the clearest candidate for the one improvement.
+
+If I tightened a criterion in a future test, I would run the model-related
+criteria across five different matching items rather than five repetitions of
+one item, and I would explicitly check that captions contain no invented URLs
+or unsupported seller claims. I did not revise `criteria.md` because the
+original criteria were measurable and were applied as written.
 
 
 ---
