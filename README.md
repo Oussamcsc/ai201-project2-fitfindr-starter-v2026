@@ -266,21 +266,74 @@ that produced it:
 
 **Happy path**
 
-```
+Command: `.venv/bin/python app.py ask 'vintage graphic tee under $30' --trace`
 
+```text
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: description='vintage graphic tee', size=None, max_price=30.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=30.0
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    branch: continue
+[3] select_listing
+      in:  first search result
+      out: Y2K Baby Tee — Butterfly Print ($18.0, depop)
+[4] suggest_outfit
+      in:  item='Y2K Baby Tee — Butterfly Print', wardrobe_items=10
+      out: **Outfit 1: Y2K Streetwear** *   **Bottoms:** Baggy straight-leg jeans *   **Outerwear:** Black cropped zip ho…
+[5] create_fit_card
+      in:  outfit='**Outfit 1: Y2K Streetwear**\n*   **Bottoms:** Baggy straight-leg jeans\n*   **Outerwear:** Black crop…
+      out: Scored this butterfly print Y2K baby tee for just $18 on Depop and I’m obsessed. Already styling it with baggy…
 ```
 
 **Empty search**
 
+Command: `.venv/bin/python app.py ask 'designer ballgown size XXS under $5' --trace`
+
+```text
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: description='designer ballgown', size='XXS', max_price=5.0
+[2] search_listings (via MCP)
+      in:  description='designer ballgown', size='XXS', max_price=5.0
+      out: [] (empty)
+      →    branch: empty, stopping
 ```
 
-```
+The shorter empty-search trace confirms that `suggest_outfit` and
+`create_fit_card` were not called after the MCP tool returned an empty list.
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+**Deliberate failure checks**
 
+- **Empty search:** `I couldn't find matching listings. Try changing the item description, choosing a different size, or raising the max price.`
+- **Empty wardrobe:** Running `denim jacket under $50 --empty-wardrobe` returned general advice rather than crashing or returning an empty string. It named the problem and gave the user a next action without claiming the suggested pieces were saved:
+
+  ```text
+  Your saved wardrobe is empty, so these are general styling ideas. Add wardrobe pieces for personalized combinations.
+
+  1. Model-Off-Duty Streetwear
+  - Bottoms: High-waisted black wide-leg cargo pants.
+  - Top: Fitted ribbed white tank top.
+  - Footwear: Retro white leather sneakers (like Adidas Sambas).
+  - Accessory: A black nylon shoulder bag.
+
+  2. Casual Weekend Classic
+  - Bottoms: Olive green or beige utility midi skirt.
+  - Top: Oversized graphic tee (tucked in).
+  - Footwear: Canvas slip-on sneakers or chunky loafers with white socks.
+  - Accessory: A canvas tote bag.
+  ```
+- **Model unavailable:** After changing one character of the API key and using a new uncached query, the agent returned: `The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.` The original key was restored immediately afterward.
+
+All three messages give the user a next action: broaden the search, use general
+styling advice or save wardrobe pieces, and check or replace the API key.
+
+**On the MCP move:** `mcp_server.py` now publishes `search_listings` with typed
+inputs, and `agent.py::run_agent` calls it through `mcp_client.call_tool`
+instead of importing it directly. Comparing direct and MCP calls produced the
+same list of dictionaries for a matching query and the same empty list for an
+impossible query, so behavior did not change after the rewire.
 
 
 ---

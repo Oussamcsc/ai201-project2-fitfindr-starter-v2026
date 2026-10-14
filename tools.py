@@ -229,10 +229,17 @@ User wardrobe:
 Return a concise, practical styling suggestion.
 """.strip()
 
-    return generate(
+    suggestion = generate(
         prompt,
         system="You are a concise personal stylist for thrift shoppers. Be specific and practical.",
     )
+    if not wardrobe_items:
+        return (
+            "Your saved wardrobe is empty, so these are general styling ideas. "
+            "Add wardrobe pieces for personalized combinations.\n\n"
+            f"{suggestion}"
+        )
+    return suggestion
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────

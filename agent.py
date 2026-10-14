@@ -135,15 +135,33 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         iterations += 1
         trace.check_iterations(iterations)
         session["parsed"] = _parse_query(query)
+        parsed = session["parsed"]
+        trace.step(
+            "parse_query",
+            inputs=query,
+            returned=(
+                f"description={parsed['description']!r}, size={parsed['size']!r}, "
+                f"max_price={parsed['max_price']!r}"
+            ),
+        )
 
         iterations += 1
         trace.check_iterations(iterations)
         results = call_tool("search_listings", {
-            "description": session["parsed"]["description"],
-            "size": session["parsed"]["size"],
-            "max_price": session["parsed"]["max_price"],
+            "description": parsed["description"],
+            "size": parsed["size"],
+            "max_price": parsed["max_price"],
         })
         session["search_results"] = results
+        trace.step(
+            "search_listings (via MCP)",
+            inputs=(
+                f"description={parsed['description']!r}, size={parsed['size']!r}, "
+                f"max_price={parsed['max_price']!r}"
+            ),
+            returned=results,
+            note="branch: continue" if results else "branch: empty, stopping",
+        )
 
         if not results:
             session["error"] = (
@@ -153,6 +171,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             return session
 
         session["selected_item"] = session["search_results"][0]
+        trace.step(
+            "select_listing",
+            inputs="first search result",
+            returned=session["selected_item"],
+        )
 
         iterations += 1
         trace.check_iterations(iterations)
@@ -160,12 +183,28 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             session["selected_item"],
             session["wardrobe"],
         )
+        trace.step(
+            "suggest_outfit",
+            inputs=(
+                f"item={session['selected_item']['title']!r}, "
+                f"wardrobe_items={len(session['wardrobe'].get('items', []))}"
+            ),
+            returned=session["outfit_suggestion"],
+        )
 
         iterations += 1
         trace.check_iterations(iterations)
         session["fit_card"] = create_fit_card(
             session["outfit_suggestion"],
             session["selected_item"],
+        )
+        trace.step(
+            "create_fit_card",
+            inputs=(
+                f"outfit={session['outfit_suggestion']!r}, "
+                f"item={session['selected_item']['title']!r}"
+            ),
+            returned=session["fit_card"],
         )
         return session
 
