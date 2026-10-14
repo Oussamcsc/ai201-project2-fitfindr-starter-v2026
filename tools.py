@@ -303,6 +303,8 @@ Requirements:
 - Mention the price once.
 - Mention the platform once.
 - Sound like a real fit caption, not a product listing.
+- Use only the provided details. Do not invent a URL, closet link, seller
+  ownership, availability claim, or instruction to buy the item.
 """.strip()
 
     return generate(
