@@ -435,25 +435,57 @@ impossible query, so behavior did not change after the rewire.
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** I made one prompt change in
+`tools.py::create_fit_card`. I added an instruction to use only provided
+listing details and not invent URLs, closet links, seller ownership,
+availability claims, or instructions to buy. No search, branch, session,
+scenario, model, or temperature setting changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** The before run produced a caption with
+`Shop my Poshmark closet: [Insert Closet Link]`, even though no closet URL was
+provided. Several other captions also invented seller calls to action. The
+prompt requested a social caption but did not set a factual boundary, so the
+model filled in common resale-post language.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before tool 2 | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected listing is preserved in session | 4 of 5 | PASS | PASS | FAIL | PASS | PASS | MET (4/5) |
+| 4. Fit card includes posting details | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Search respects the price ceiling | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+The complete unedited after output is in
+`results/run_2026-10-14_1536_after.md`, produced by `run_eval.py::main` with
+caching off. It made 39 model calls; the missing fortieth call corresponds to
+the run that stopped on a model-service error.
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+Criterion 3 Try 3 failed because `suggest_outfit` received a provider `503
+UNAVAILABLE`, leaving `outfit_suggestion` empty. This was an external model
+availability failure, not a session identity failure and not an effect of the
+fit-card prompt change. The other four tries preserved the selected jacket and
+referred to it in the outfit, so the criterion still met its 4-of-5 target.
 
+**Did it help, and how do I know:** It helped, but did not eliminate the
+problem. I applied the same check to every generated fit card: flag a card if
+it contained a URL/placeholder, claimed a seller account or closet, or told
+the reader to buy or grab the item. The rate fell from **8 of 20 before** to
+**2 of 19 completed cards after**. The placeholder-link count fell from
+**1 to 0**.
+
+| Measure | Before | After |
+|---|---:|---:|
+| Acceptance criteria met | 5 of 5 | 5 of 5 |
+| Fit cards with invented seller/link/buy language | 8 of 20 | 2 of 19 |
+| Placeholder links | 1 | 0 |
+
+A remaining after-run violation was: `Grab it before it’s gone!` Another said
+`Just listed it on Depop if you want to grab it!` This shows that a prompt-only
+constraint reduced the behavior substantially but cannot guarantee it. I did
+not add a validator or make a second fix because this milestone permits one
+improvement only.
 
 
 ---
