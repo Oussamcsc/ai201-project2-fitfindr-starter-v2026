@@ -185,6 +185,18 @@ Scored this 2003 tour graphic tee and I'm obsessed with the faded wash. It’s g
 - *What came back:* The agent implemented keyword search, token-aware size matching, model prompts for outfit suggestions, and a fit-card prompt.
 - *What I changed:* After the first search test ranked some loose matches above the direct graphic tee result, the search scoring was adjusted to give extra weight to title and style-tag matches.
 
+**Moment 3**
+
+- *What I asked for:* For Part 2, I approved the MCP and failure-testing phase but required the coding agent to stop before starting the next phase.
+- *What came back:* It registered `search_listings` with typed MCP inputs, rewired the loop through `mcp_client.call_tool`, deliberately triggered empty search, empty wardrobe, and invalid-key failures, and added a trace showing the MCP call.
+- *What I changed:* I kept the work split into approved phases so the baseline could not be changed after seeing evaluation results. The empty-wardrobe response was also made explicit about why its advice was general and what the user could do next.
+
+**Moment 4**
+
+- *What I asked for:* I approved the five-by-five baseline, diagnosis, one improvement, and matching after-run as separate phases.
+- *What came back:* The agent preserved both raw run logs, applied the original targets without lowering them, found an invented Poshmark placeholder link, and suggested one prompt-only improvement. It then measured the same scenarios again and reported both the improvement and a transient `503` failure rather than hiding them.
+- *What I changed:* I used the prompt constraint as the single improvement and kept its result honest: flagged seller/link/buy language fell from 8 of 20 cards to 2 of 19 completed cards, but was not eliminated.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -492,10 +504,36 @@ improvement only.
 
 ## What's Still Broken
 
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. Pretending nothing is
-     left is not. -->
+No acceptance criterion remains missed: all five met their original targets in
+both the before and after runs. That does not mean the agent has no remaining
+problems.
 
+1. **The fit-card model can still ignore the factual-boundary instruction.**
+   Two of 19 completed after-run cards still used unsupported seller or buying
+   language: `Grab it before it’s gone!` and `Just listed it on Depop if you
+   want to grab it!` I would add a deterministic output validator that rejects
+   URLs, placeholders, seller-account claims, and purchase instructions, then
+   retries once with a correction prompt. I stopped because the assignment
+   permits one improvement, and adding validation or retry logic would be a
+   second system change.
+
+2. **A temporary provider outage can end a run after selection.** Criterion 3
+   Try 3 in the after run reached `select_listing` and then stopped when
+   `suggest_outfit` received `503 UNAVAILABLE`. The user-facing message did not
+   show a traceback, but it included the provider's raw error payload instead
+   of simply saying the service was temporarily unavailable and to retry. I
+   would teach `generate.py::_explain` to recognize `503`/`UNAVAILABLE` and
+   return that concise retry message. I stopped to preserve the one-improvement
+   rule and recorded the failed try as a failure; the criterion still met its
+   4-of-5 target.
+
+3. **The model-related evaluation has narrow item coverage.** Criteria 1, 3,
+   and 4 repeat one query five times, which measures variation and consistency
+   but not behavior across five different item records. In a future test I
+   would add multiple matching items, including records with missing brands,
+   while retaining five tries per criterion. I did not change the original
+   criteria or scenarios after seeing the results because that would make the
+   before/after comparison inconsistent.
 
 
 <!-- ═════════════════════════════════════════════════════════════════════
